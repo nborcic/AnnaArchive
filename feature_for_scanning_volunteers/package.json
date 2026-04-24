@@ -1,0 +1,14 @@
+{
+  "name": "scanner-volunteer-matcher",
+  "version": "1.0.0",
+  "description": "Match scanning volunteers to book preservation requests",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0"
+  }
+}

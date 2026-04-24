@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scanner Volunteer Matcher</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <h1>Scanner Volunteer Matcher</h1>
+      <div class="header-actions">
+        <!-- Watch count badge — hidden when count is 0, shown by render.ts -->
+        <span id="watch-count" class="watch-count-badge" style="display:none"></span>
+        <button id="toggle-watched-btn" class="btn-secondary">Watched books</button>
+        <button id="export-btn" class="btn-secondary">Export JSON</button>
+        <button id="import-btn" class="btn-secondary">Import JSON</button>
+        <button id="clear-all-btn" class="btn-danger">Clear all</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── WATCHED PANEL (sidebar overlay) ────────────────────────────────────── -->
+  <!-- Toggled open/closed by main.ts. Positioned via CSS on the right side. -->
+  <aside id="watched-panel" class="watched-panel">
+    <h2>Watched Books</h2>
+    <!-- renderWatchedPanel() in render.ts fills this -->
+  </aside>
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- PROFILE SECTION — shown when no profile exists or user clicks "Edit"    -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <section id="profile-section" class="section">
+    <div class="form-wrapper">
+      <h2>Your Volunteer Profile</h2>
+      <p class="form-intro">Tell us about your location and access so we can find the best books for you to scan.</p>
+
+      <form id="profile-form" novalidate>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="country">Country <span class="required">*</span></label>
+            <input id="country" name="country" type="text" placeholder="e.g. Croatia" required />
+          </div>
+          <div class="form-group">
+            <label for="city">City / Region <span class="required">*</span></label>
+            <input id="city" name="city" type="text" placeholder="e.g. Split" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <!-- Comma-separated input. main.ts splits it into an array. -->
+          <label for="languages">Languages <span class="required">*</span></label>
+          <input id="languages" name="languages" type="text"
+            placeholder="e.g. Croatian, English" required />
+          <small>Separate with commas</small>
+        </div>
+
+        <div class="form-group">
+          <label for="libraries">Accessible Libraries <span class="required">*</span></label>
+          <textarea id="libraries" name="libraries" rows="2"
+            placeholder="e.g. University Library Split, City Library Split"></textarea>
+          <small>Separate with commas</small>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="scannerType">Scanner Type</label>
+            <select id="scannerType" name="scannerType">
+              <option value="phone">Phone camera</option>
+              <option value="flatbed">Flatbed scanner</option>
+              <option value="overhead">Overhead scanner</option>
+              <option value="dslr">DSLR camera</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="travelDistanceKm">Max travel (km)</label>
+            <input id="travelDistanceKm" name="travelDistanceKm"
+              type="number" min="0" max="500" value="20" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Notes</label>
+          <textarea id="notes" name="notes" rows="2"
+            placeholder="Anything else about your access or availability"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">Find books to scan →</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- RESULTS SECTION — shown after profile is submitted                      -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <section id="results-section" class="section hidden">
+
+    <!-- Profile summary bar — filled by renderProfileSummary() in render.ts -->
+    <div id="profile-area"></div>
+
+    <div class="results-layout">
+
+      <!-- ── LEFT SIDEBAR ────────────────────────────────────────────────── -->
+      <aside class="sidebar">
+
+        <!-- Filter controls -->
+        <div class="filter-panel">
+          <h3>Filters</h3>
+
+          <div class="form-group">
+            <label for="filter-search">Search title / author</label>
+            <input id="filter-search" type="text" placeholder="Type to search…" />
+          </div>
+
+          <div class="form-group">
+            <label for="filter-lang">Language</label>
+            <!-- Options populated dynamically by populateLanguageDropdown() -->
+            <select id="filter-lang">
+              <option value="">All languages</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="filter-risk">Risk level</label>
+            <select id="filter-risk">
+              <option value="">All levels</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+
+          <!-- Toggle checkboxes -->
+          <label class="checkbox-label">
+            <input id="filter-high-priority" type="checkbox" />
+            Only high priority (score ≥ 80)
+          </label>
+          <label class="checkbox-label">
+            <input id="filter-same-city" type="checkbox" />
+            Only same city
+          </label>
+          <label class="checkbox-label">
+            <input id="filter-hide-digitized" type="checkbox" />
+            Hide already digitized
+          </label>
+
+          <button id="clear-filters-btn" class="btn-ghost">Clear filters</button>
+        </div>
+
+        <!-- Admin: add a custom book -->
+        <div class="admin-panel">
+          <h3>Add book request</h3>
+          <form id="add-book-form">
+            <div class="form-group">
+              <input name="title" type="text" placeholder="Title *" required />
+            </div>
+            <div class="form-group">
+              <input name="author" type="text" placeholder="Author" />
+            </div>
+            <div class="form-row">
+              <input name="language" type="text" placeholder="Language *" required />
+              <input name="country"  type="text" placeholder="Country *"  required />
+            </div>
+            <div class="form-row">
+              <input name="city"    type="text" placeholder="City *"    required />
+              <input name="library" type="text" placeholder="Library *" required />
+            </div>
+            <div class="form-row">
+              <input name="requestCount" type="number" min="0" placeholder="Requests" value="1" />
+              <select name="riskLevel">
+                <option value="high">High risk</option>
+                <option value="medium">Medium risk</option>
+                <option value="low">Low risk</option>
+              </select>
+            </div>
+            <label class="checkbox-label">
+              <input name="isDigitized" type="checkbox" value="yes" />
+              Already digitized
+            </label>
+            <button type="submit" class="btn-primary btn-full">Add book</button>
+          </form>
+        </div>
+
+      </aside>
+
+      <!-- ── RESULTS GRID ─────────────────────────────────────────────────── -->
+      <!-- renderBookCard() in render.ts populates this with article elements -->
+      <main id="results-grid" class="results-grid"></main>
+
+    </div>
+  </section>
+
+  <!-- Vite processes this and bundles main.ts with all its imports -->
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

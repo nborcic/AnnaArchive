@@ -1,284 +1,244 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scanning Volunteers – Anna's Archive</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/scanning_volunteers.css') }}" />
-</head>
-<body>
+{% extends "layouts/index.html" %}
 
-<!-- ── SITE HEADER ────────────────────────────────────────────────────────── -->
-<!-- In the real Anna's Archive repo this would extend base.html and use
-     a content block. Here we keep it self-contained so the feature
-     can be run standalone without a base template.                           -->
-<header class="site-header">
-  <div class="header-inner">
-    <a href="/" class="site-logo">Anna's Archive</a>
-    <div class="header-actions">
-      <a href="/scanning-volunteers" class="nav-link active">Scanning Volunteers</a>
-      <span id="watch-count" class="watch-count-badge" style="display:none"></span>
-      <button id="toggle-watched-btn" class="btn-secondary">Watched books</button>
-    </div>
-  </div>
-</header>
+{% block title %}Scanning Volunteers – Anna's Archive{% endblock %}
 
-<!-- Slide-in panel showing the volunteer's watched book list. Populated by JS. -->
-<aside id="watched-panel" class="watched-panel">
-  <h2>Watched Books</h2>
+{% block body %}
+{# Minimal inline style only for the watched panel slide animation —
+   Tailwind cannot express a toggled arbitrary right-offset transition. #}
+<style>
+  #watched-panel { right: -320px; transition: right .25s ease; }
+  #watched-panel.open { right: 0; }
+</style>
+
+{# ── WATCHED PANEL (fixed overlay, populated by JS) ──────────────────────── #}
+<aside id="watched-panel" class="fixed top-0 w-72 h-screen bg-white border-l border-gray-300 shadow-xl overflow-y-auto z-[200] p-5">
+  <h2 class="text-base font-bold mb-4 pb-2 border-b border-gray-200">Watched Books</h2>
 </aside>
 
-<main class="page-main">
+{# ── PAGE HEADING ─────────────────────────────────────────────────────────── #}
+<div class="flex items-center justify-between mt-4 mb-4">
+  <h2 class="text-3xl font-bold">Scanning Volunteers</h2>
+  <div class="flex items-center gap-2">
+    <span id="watch-count" class="hidden bg-[#2a9d8f] text-white text-xs font-bold px-3 py-1 rounded-full"></span>
+    <button id="toggle-watched-btn" class="border border-gray-300 bg-white hover:bg-gray-100 text-sm font-semibold px-3 py-1.5 rounded cursor-pointer">Watched books</button>
+  </div>
+</div>
 
-  <!-- ── PAGE INTRO ─────────────────────────────────────────────────────── -->
-  <section class="page-intro">
-    <h1>Scanning Volunteers</h1>
-    <p>
-      Enter your location and library access below. We'll show you which
-      books in our request queue you're best positioned to scan — ranked by
-      proximity, language, demand, and preservation urgency.
-    </p>
-  </section>
+<p class="mb-6 text-gray-500">Enter your location and library access below. We'll show you which books in our request queue you're best positioned to scan — ranked by proximity, language, demand, and preservation urgency.</p>
 
-  <!-- ════════════════════════════════════════════════════════════════════ -->
-  <!-- VOLUNTEER FORM                                                       -->
-  <!-- GET form so the URL becomes bookmarkable and shareable after submit. -->
-  <!-- ════════════════════════════════════════════════════════════════════ -->
-  <section class="form-section">
-    <h2>Your volunteer profile</h2>
+{# ── VOLUNTEER PROFILE FORM ───────────────────────────────────────────────── #}
+<div class="bg-white border border-gray-300 rounded-lg p-6 mb-8 shadow-sm">
+  <h3 class="text-lg font-bold mb-4">Your volunteer profile</h3>
 
-    <form method="GET" action="/scanning-volunteers" class="volunteer-form">
+  <form method="GET" action="/scanning-volunteers">
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="country">Country</label>
-          <!-- value="{{ profile.country }}" re-fills the field after submit -->
-          <input id="country" name="country" type="text"
-            placeholder="e.g. Croatia"
-            value="{{ profile.country }}" />
-        </div>
-        <div class="form-group">
-          <label for="city">City / Region</label>
-          <input id="city" name="city" type="text"
-            placeholder="e.g. Split"
-            value="{{ profile.city }}" />
-        </div>
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div>
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1" for="country">Country</label>
+        <input id="country" name="country" type="text" placeholder="e.g. Croatia"
+          value="{{ profile.country }}"
+          class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#4361ee] focus:ring-2 focus:ring-[#4361ee]/20" />
       </div>
-
-      <div class="form-group">
-        <label for="languages">Languages you read</label>
-        {# languages is a list in Python — join it back to a comma string for display #}
-        <input id="languages" name="languages" type="text"
-          placeholder="e.g. Croatian, English"
-          value="{{ profile.languages | join(', ') }}" />
-        <small>Separate with commas</small>
+      <div>
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1" for="city">City / Region</label>
+        <input id="city" name="city" type="text" placeholder="e.g. Split"
+          value="{{ profile.city }}"
+          class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#4361ee] focus:ring-2 focus:ring-[#4361ee]/20" />
       </div>
+    </div>
 
-      <div class="form-group">
-        <label for="libraries">Libraries you can access</label>
-        <input id="libraries" name="libraries" type="text"
-          placeholder="e.g. University Library Split"
-          value="{{ profile.libraries | join(', ') }}" />
-        <small>Separate with commas</small>
-      </div>
+    <div class="mb-3">
+      <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1" for="languages">Languages you read</label>
+      <input id="languages" name="languages" type="text" placeholder="e.g. Croatian, English"
+        value="{{ profile.languages | join(', ') }}"
+        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#4361ee] focus:ring-2 focus:ring-[#4361ee]/20" />
+      <p class="text-xs text-gray-400 mt-1">Separate with commas</p>
+    </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label for="scanner_type">Scanner type</label>
-          <select id="scanner_type" name="scanner_type">
-            <option value="">— select —</option>
-            {# selected="selected" re-applies the previous choice after submit #}
-            {% for opt in ["phone", "flatbed", "overhead", "dslr", "other"] %}
-              <option value="{{ opt }}"
-                {% if profile.scanner_type == opt %}selected="selected"{% endif %}>
-                {{ opt | capitalize }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="travel_distance_km">Max travel (km)</label>
-          <input id="travel_distance_km" name="travel_distance_km"
-            type="number" min="0" max="500" placeholder="20"
-            value="{{ profile.travel_distance_km }}" />
-        </div>
-      </div>
+    <div class="mb-3">
+      <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1" for="libraries">Libraries you can access</label>
+      <input id="libraries" name="libraries" type="text" placeholder="e.g. University Library Split"
+        value="{{ profile.libraries | join(', ') }}"
+        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#4361ee] focus:ring-2 focus:ring-[#4361ee]/20" />
+      <p class="text-xs text-gray-400 mt-1">Separate with commas</p>
+    </div>
 
-      <div class="form-group">
-        <label for="notes">Notes</label>
-        <textarea id="notes" name="notes" rows="2"
-          placeholder="Anything about your availability or access">{{ profile.notes }}</textarea>
-      </div>
-
-      <button type="submit" class="btn-primary">Find books to scan →</button>
-    </form>
-  </section>
-
-  <!-- ════════════════════════════════════════════════════════════════════ -->
-  <!-- RESULTS SECTION                                                      -->
-  <!-- Only rendered when the user has submitted the form (profile is set). -->
-  <!-- ════════════════════════════════════════════════════════════════════ -->
-  {% if profile.country or profile.city or profile.languages %}
-
-  <section class="results-section">
-    <div class="results-layout">
-
-      <!-- ── FILTER SIDEBAR ────────────────────────────────────────────── -->
-      <!-- Filters are part of the same GET form so applying them
-           keeps the profile fields in the URL too.                        -->
-      <aside class="filter-sidebar">
-        <h3>Filters</h3>
-
-        {# We wrap filters in a form that also carries profile fields as
-           hidden inputs so submitting a filter doesn't wipe the profile. #}
-        <form method="GET" action="/scanning-volunteers" class="filter-form">
-
-          {# Preserve profile values as hidden fields #}
-          <input type="hidden" name="country"             value="{{ profile.country }}" />
-          <input type="hidden" name="city"                value="{{ profile.city }}" />
-          <input type="hidden" name="languages"           value="{{ profile.languages | join(', ') }}" />
-          <input type="hidden" name="libraries"           value="{{ profile.libraries | join(', ') }}" />
-          <input type="hidden" name="scanner_type"        value="{{ profile.scanner_type }}" />
-          <input type="hidden" name="travel_distance_km"  value="{{ profile.travel_distance_km }}" />
-
-          <div class="form-group">
-            <label for="filter_language">Language</label>
-            <select id="filter_language" name="filter_language">
-              <option value="">All languages</option>
-              {% for lang in all_languages %}
-                <option value="{{ lang }}"
-                  {% if active_filters.language == lang %}selected="selected"{% endif %}>
-                  {{ lang }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="risk_level">Risk level</label>
-            <select id="risk_level" name="risk_level">
-              <option value="">All levels</option>
-              {% for level in ["high", "medium", "low"] %}
-                <option value="{{ level }}"
-                  {% if active_filters.risk_level == level %}selected="selected"{% endif %}>
-                  {{ level | capitalize }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <label class="checkbox-label">
-            <input type="checkbox" name="only_high_priority" value="1"
-              {% if active_filters.only_high_priority %}checked{% endif %} />
-            Only high priority (score ≥ 80)
-          </label>
-
-          <label class="checkbox-label">
-            <input type="checkbox" name="only_same_country" value="1"
-              {% if active_filters.only_same_country %}checked{% endif %} />
-            Only same country
-          </label>
-
-          <label class="checkbox-label">
-            <input type="checkbox" name="only_same_city" value="1"
-              {% if active_filters.only_same_city %}checked{% endif %} />
-            Only same city
-          </label>
-
-          <label class="checkbox-label">
-            <input type="checkbox" name="hide_digitized" value="1"
-              {% if active_filters.hide_digitized %}checked{% endif %} />
-            Hide already digitized
-          </label>
-
-          <button type="submit" class="btn-secondary btn-full">Apply filters</button>
-
-          {# Clear filters = same URL but without filter params, profile stays #}
-          <a href="/scanning-volunteers?country={{ profile.country }}&city={{ profile.city }}&languages={{ profile.languages | join(',') }}&libraries={{ profile.libraries | join(',') }}&scanner_type={{ profile.scanner_type }}"
-             class="btn-ghost btn-full">Clear filters</a>
-        </form>
-      </aside>
-
-      <!-- ── RESULTS LIST ──────────────────────────────────────────────── -->
-      <div class="results-main">
-
-        <!-- Result count header -->
-        <div class="results-header">
-          <p class="results-count">
-            {% if matches %}
-              Showing <strong>{{ matches | length }}</strong>
-              {% if matches | length != total_before_filter %}
-                of {{ total_before_filter }}
-              {% endif %}
-              matched book{% if matches | length != 1 %}s{% endif %}
-            {% else %}
-              No books match your current filters.
-            {% endif %}
-          </p>
-        </div>
-
-        <!-- ── BOOK CARDS ───────────────────────────────────────────────── -->
-        {% if matches %}
-          {% for book in matches %}
-          <article class="book-card risk-{{ book.risk_level }}" data-book-id="{{ book.id }}" data-book-title="{{ book.title }}">
-
-            <div class="card-top">
-              <span class="score-badge">Score: {{ book.score }}</span>
-              <span class="risk-badge risk-{{ book.risk_level }}">{{ book.risk_level }} risk</span>
-              {% if book.is_digitized %}
-                <span class="digitized-badge">Already digitized</span>
-              {% endif %}
-            </div>
-
-            <h3 class="card-title">{{ book.title }}</h3>
-            <p class="card-author">{{ book.author }}</p>
-
-            <!-- Definition list keeps the metadata aligned in two columns via CSS -->
-            <dl class="card-meta">
-              <dt>Library</dt>   <dd>{{ book.library }}</dd>
-              <dt>Location</dt>  <dd>{{ book.city }}, {{ book.country }}</dd>
-              <dt>Language</dt>  <dd>{{ book.language }}</dd>
-              <dt>Requests</dt>  <dd>{{ book.request_count }}</dd>
-            </dl>
-
-            <!-- Match reasons — the most important part of the UI.
-                 The user must understand WHY a book ranked where it did. -->
-            {% if book.match_reasons %}
-            <div class="card-reasons">
-              <p class="reasons-label">Why this book:</p>
-              <ul>
-                {% for reason in book.match_reasons %}
-                  <li>{{ reason }}</li>
-                {% endfor %}
-              </ul>
-            </div>
-            {% endif %}
-
-            <button class="watch-btn" data-id="{{ book.id }}">Watch this book</button>
-
-          </article>
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div>
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1" for="scanner_type">Scanner type</label>
+        <select id="scanner_type" name="scanner_type"
+          class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#4361ee]">
+          <option value="">— select —</option>
+          {% for opt in ["phone", "flatbed", "overhead", "dslr", "other"] %}
+            <option value="{{ opt }}" {% if profile.scanner_type == opt %}selected{% endif %}>{{ opt | capitalize }}</option>
           {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1" for="travel_distance_km">Max travel (km)</label>
+        <input id="travel_distance_km" name="travel_distance_km" type="number" min="0" max="500" placeholder="20"
+          value="{{ profile.travel_distance_km }}"
+          class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#4361ee]" />
+      </div>
+    </div>
 
-        {% else %}
-          <!-- Empty state: filters produced zero results -->
-          <div class="empty-state">
-            <p>No books match your current filters.</p>
-            <p>Try clearing some filters or broadening your profile.</p>
-          </div>
+    <div class="mb-4">
+      <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1" for="notes">Notes</label>
+      <textarea id="notes" name="notes" rows="2" placeholder="Anything about your availability or access"
+        class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#4361ee] focus:ring-2 focus:ring-[#4361ee]/20">{{ profile.notes }}</textarea>
+    </div>
+
+    <button type="submit" class="bg-[#4361ee] hover:bg-[#3a56d4] text-white font-semibold text-sm px-5 py-2 rounded cursor-pointer border-0">Find books to scan →</button>
+  </form>
+</div>
+
+{# ── RESULTS (only when profile fields are present) ───────────────────────── #}
+{% if profile.country or profile.city or profile.languages %}
+
+{% set risk_color = {'high': '#e63946', 'medium': '#f4a261', 'low': '#2a9d8f'} %}
+
+<div class="grid grid-cols-[230px_1fr] gap-6 items-start">
+
+  {# ── FILTER SIDEBAR ────────────────────────────────────────────────────── #}
+  <aside class="bg-white border border-gray-300 rounded-lg p-4 shadow-sm sticky top-[70px]">
+    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Filters</h3>
+
+    {# Filters ride a separate GET form that carries profile values as hidden
+       fields so applying a filter doesn't wipe the volunteer's profile. #}
+    <form method="GET" action="/scanning-volunteers">
+      <input type="hidden" name="country"            value="{{ profile.country }}" />
+      <input type="hidden" name="city"               value="{{ profile.city }}" />
+      <input type="hidden" name="languages"          value="{{ profile.languages | join(', ') }}" />
+      <input type="hidden" name="libraries"          value="{{ profile.libraries | join(', ') }}" />
+      <input type="hidden" name="scanner_type"       value="{{ profile.scanner_type }}" />
+      <input type="hidden" name="travel_distance_km" value="{{ profile.travel_distance_km }}" />
+
+      <div class="mb-3">
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1" for="filter_language">Language</label>
+        <select id="filter_language" name="filter_language"
+          class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#4361ee]">
+          <option value="">All languages</option>
+          {% for lang in all_languages %}
+            <option value="{{ lang }}" {% if active_filters.language == lang %}selected{% endif %}>{{ lang }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1" for="risk_level">Risk level</label>
+        <select id="risk_level" name="risk_level"
+          class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#4361ee]">
+          <option value="">All levels</option>
+          {% for level in ["high", "medium", "low"] %}
+            <option value="{{ level }}" {% if active_filters.risk_level == level %}selected{% endif %}>{{ level | capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <label class="flex items-center gap-2 text-sm cursor-pointer mb-2">
+        <input type="checkbox" name="only_high_priority" value="1"
+          {% if active_filters.only_high_priority %}checked{% endif %}
+          class="accent-[#4361ee]" />
+        Only high priority (score ≥ 80)
+      </label>
+      <label class="flex items-center gap-2 text-sm cursor-pointer mb-2">
+        <input type="checkbox" name="only_same_country" value="1"
+          {% if active_filters.only_same_country %}checked{% endif %}
+          class="accent-[#4361ee]" />
+        Only same country
+      </label>
+      <label class="flex items-center gap-2 text-sm cursor-pointer mb-2">
+        <input type="checkbox" name="only_same_city" value="1"
+          {% if active_filters.only_same_city %}checked{% endif %}
+          class="accent-[#4361ee]" />
+        Only same city
+      </label>
+      <label class="flex items-center gap-2 text-sm cursor-pointer mb-4">
+        <input type="checkbox" name="hide_digitized" value="1"
+          {% if active_filters.hide_digitized %}checked{% endif %}
+          class="accent-[#4361ee]" />
+        Hide already digitized
+      </label>
+
+      <button type="submit"
+        class="w-full border border-gray-300 bg-white hover:bg-gray-100 text-sm font-semibold px-3 py-1.5 rounded cursor-pointer mb-2">
+        Apply filters
+      </button>
+      <a href="/scanning-volunteers?country={{ profile.country }}&city={{ profile.city }}&languages={{ profile.languages | join(',') }}&libraries={{ profile.libraries | join(',') }}&scanner_type={{ profile.scanner_type }}"
+         class="block w-full text-center text-gray-400 border border-dashed border-gray-300 hover:bg-gray-50 text-sm px-3 py-1.5 rounded">
+        Clear filters
+      </a>
+    </form>
+  </aside>
+
+  {# ── RESULTS LIST ──────────────────────────────────────────────────────── #}
+  <div>
+    <p class="text-sm text-gray-500 mb-4">
+      {% if matches %}
+        Showing <strong class="text-gray-900">{{ matches | length }}</strong>
+        {% if matches | length != total_before_filter %} of {{ total_before_filter }}{% endif %}
+        matched book{{ 's' if matches | length != 1 }}
+      {% else %}
+        No books match your current filters.
+      {% endif %}
+    </p>
+
+    {% if matches %}
+      {% for book in matches %}
+      <article class="bg-white border border-gray-300 border-l-4 rounded-lg p-4 mb-4 shadow-sm hover:shadow-md transition-shadow"
+               style="border-left-color: {{ risk_color[book.risk_level] }}"
+               data-book-id="{{ book.id }}" data-book-title="{{ book.title }}">
+
+        <div class="flex items-center gap-2 flex-wrap mb-2">
+          <span class="bg-gray-900 text-white text-xs font-bold px-2 py-0.5 rounded-full">Score: {{ book.score }}</span>
+          <span class="text-xs font-bold uppercase tracking-wide" style="color: {{ risk_color[book.risk_level] }}">{{ book.risk_level }} risk</span>
+          {% if book.is_digitized %}
+            <span class="text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">Already digitized</span>
+          {% endif %}
+        </div>
+
+        <h3 class="font-bold text-base leading-snug mb-0.5">{{ book.title }}</h3>
+        <p class="text-sm text-gray-500 mb-3">{{ book.author }}</p>
+
+        <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm mb-3">
+          <dt class="text-gray-500 font-semibold whitespace-nowrap">Library</dt>  <dd>{{ book.library }}</dd>
+          <dt class="text-gray-500 font-semibold whitespace-nowrap">Location</dt> <dd>{{ book.city }}, {{ book.country }}</dd>
+          <dt class="text-gray-500 font-semibold whitespace-nowrap">Language</dt> <dd>{{ book.language }}</dd>
+          <dt class="text-gray-500 font-semibold whitespace-nowrap">Requests</dt> <dd>{{ book.request_count }}</dd>
+        </dl>
+
+        {% if book.match_reasons %}
+        <div class="bg-gray-50 border border-gray-200 rounded p-3 mb-3">
+          <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Why this book:</p>
+          <ul class="space-y-0.5">
+            {% for reason in book.match_reasons %}
+              <li class="text-xs text-gray-700 pl-4 relative before:content-['→'] before:absolute before:left-0 before:text-[#4361ee]">{{ reason }}</li>
+            {% endfor %}
+          </ul>
+        </div>
         {% endif %}
 
-      </div>{# .results-main #}
-    </div>{# .results-layout #}
-  </section>
+        <button class="watch-btn w-full border border-gray-300 bg-gray-100 hover:bg-[#4361ee] hover:text-white hover:border-[#4361ee] text-sm font-semibold px-3 py-1.5 rounded cursor-pointer transition-colors"
+                data-id="{{ book.id }}">Watch this book</button>
 
-  {% else %}
-  <!-- Shown before the form is submitted for the first time -->
-  <div class="pre-submit-hint">
-    <p>Fill in your profile above and click <strong>Find books to scan</strong> to see your matches.</p>
+      </article>
+      {% endfor %}
+
+    {% else %}
+      <div class="text-center py-12 text-gray-400 bg-white border border-gray-300 rounded-lg">
+        <p>No books match your current filters.</p>
+        <p class="mt-1">Try clearing some filters or broadening your profile.</p>
+      </div>
+    {% endif %}
   </div>
-  {% endif %}
 
-</main>
+</div>
+
+{% else %}
+<div class="text-center py-8 text-gray-400 bg-white border border-gray-300 rounded-lg">
+  <p>Fill in your profile above and click <strong class="text-gray-700">Find books to scan</strong> to see your matches.</p>
+</div>
+{% endif %}
 
 <script>
 (function () {
@@ -311,7 +271,7 @@
 
     if (watchedIds.size === 0) {
       panel.insertAdjacentHTML('beforeend',
-        '<p class="empty-watched">No books watched yet. Click “Watch this book” on any result.</p>');
+        '<p class="text-sm text-gray-400 leading-relaxed">No books watched yet. Click "Watch this book" on any result.</p>');
       return;
     }
 
@@ -319,9 +279,10 @@
       var card  = document.querySelector('[data-book-id="' + id + '"]');
       var title = card ? card.dataset.bookTitle : id;
       panel.insertAdjacentHTML('beforeend',
-        '<div class="watched-row">' +
-          '<span class="watched-title">' + esc(title) + '</span>' +
-          '<button class="unwatch-btn" data-id="' + esc(id) + '" aria-label="Stop watching">✕</button>' +
+        '<div class="flex items-center justify-between gap-2 py-1.5 border-b border-gray-100">' +
+          '<span class="text-sm flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">' + esc(title) + '</span>' +
+          '<button class="unwatch-btn text-gray-400 hover:text-red-500 hover:bg-red-50 text-sm px-1 rounded" ' +
+                  'data-id="' + esc(id) + '" aria-label="Stop watching">✕</button>' +
         '</div>');
     });
   }
@@ -329,14 +290,17 @@
   function updateCount() {
     var n = watchedIds.size;
     countEl.textContent = n ? n + ' watched' : '';
-    countEl.style.display = n ? 'inline' : 'none';
+    countEl.classList.toggle('hidden', n === 0);
   }
 
   function syncButtons() {
     document.querySelectorAll('.watch-btn[data-id]').forEach(function (btn) {
       var on = watchedIds.has(btn.dataset.id);
       btn.textContent = on ? 'Watching ✓' : 'Watch this book';
-      btn.classList.toggle('watching', on);
+      btn.classList.toggle('bg-[#2a9d8f]', on);
+      btn.classList.toggle('text-white', on);
+      btn.classList.toggle('border-[#2a9d8f]', on);
+      btn.classList.toggle('bg-gray-100', !on);
       btn.setAttribute('aria-pressed', String(on));
     });
   }
@@ -366,5 +330,5 @@
   refresh();
 })();
 </script>
-</body>
-</html>
+
+{% endblock %}

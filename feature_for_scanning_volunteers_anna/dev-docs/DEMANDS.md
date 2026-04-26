@@ -262,7 +262,9 @@ This branch runs as a standalone Flask app (`python app.py`). When merging into 
 | `layouts/index.html` base template | Already exists — remove the standalone one |
 | `from flask import Blueprint, render_template, request` at top of views.py | Some of these already imported — deduplicate |
 | `app.py` entry point | Not needed — Anna's Archive has its own `create_app()` |
-| `geonamescache` in requirements.txt | Add to Anna's Archive's requirements |
+| `geonamescache>=3.0.0` in requirements.txt | Add to Anna's Archive's requirements |
+| `langcodes[data]>=3.5.0` in requirements.txt | Add to Anna's Archive's requirements |
+| `scanning_data.py` with `MOCK_BOOKS` | Include in diff as working example data. Once the real DB query is wired in `views.py` (replace the two `MOCK_BOOKS` references with your query), delete this file. Each record shows the exact field names and types the scoring layer expects. |
 
 ---
 

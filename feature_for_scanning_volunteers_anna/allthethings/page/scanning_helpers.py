@@ -20,6 +20,12 @@ WEIGHTS = {
 
 
 # ─── GEOCODING ────────────────────────────────────────────────────────────────
+# City/country data comes from the geonamescache package (bundled JSON, offline,
+# no API key). To refresh the underlying GeoNames data run:
+#   pip install --upgrade geonamescache
+# The raw upstream dump updates daily at https://download.geonames.org/export/dump/
+# — the package author syncs from it periodically. For finer control (LIBR feature
+# codes, lower population threshold, etc.) see TODOS.md item #1.
 
 @functools.cache
 def _gc() -> geonamescache.GeonamesCache:
@@ -61,20 +67,41 @@ def _country_code(country_name: str) -> str | None:
     return substring_match
 
 
+def _pick_coords(candidates, cc: str | None) -> tuple[float, float] | None:
+    """Return (lat, lon) from the first candidate matching country code cc."""
+    for city_data in candidates:
+        if cc is None or city_data.get("countrycode") == cc:
+            return city_data["latitude"], city_data["longitude"]
+    return None
+
+
 @functools.cache
 def _get_city_coords(city: str, country: str) -> tuple[float, float] | None:
     """
     Return (lat, lon) for a city/country pair using the bundled GeoNames dataset.
-    Falls back to first name match when the country isn't recognised.
-    Returns None when the city name isn't found at all.
+
+    Strategy:
+    1. Exact name match via get_cities_by_name (fast, handles canonical names).
+    2. Alternate-name match via search_cities (catches ASCII spellings of cities
+       with diacritics, e.g. 'Gdansk' → 'Gdańsk', 'Krakow' → 'Kraków').
+    Falls back to the first result when the country isn't in the dataset.
     """
     cc = _country_code(country)
+
+    # Step 1 — exact canonical name
     # get_cities_by_name returns [{'<geonameid>': {city fields}}, ...]
-    for match in _gc().get_cities_by_name(city):
-        for city_data in match.values():
-            if cc is None or city_data.get("countrycode") == cc:
-                return city_data["latitude"], city_data["longitude"]
-    return None
+    candidates = [
+        city_data
+        for match in _gc().get_cities_by_name(city)
+        for city_data in match.values()
+    ]
+    result = _pick_coords(candidates, cc)
+    if result:
+        return result
+
+    # Step 2 — search alternate names (handles diacritics / ASCII variants)
+    alt_candidates = _gc().search_cities(city, case_sensitive=False, contains_search=False)
+    return _pick_coords(alt_candidates, cc)
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:

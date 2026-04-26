@@ -77,7 +77,7 @@
       <div>
         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1" for="travel_distance_km">Max travel (km)</label>
         <input id="travel_distance_km" name="travel_distance_km" type="number" min="0" max="500" placeholder="20"
-          value="{{ profile.travel_distance_km }}"
+          value="{{ profile.travel_distance_km if profile.travel_distance_km is not none else '' }}"
           class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-[#4361ee]" />
       </div>
     </div>
@@ -164,7 +164,7 @@
         class="w-full border border-gray-300 bg-white hover:bg-gray-100 text-sm font-semibold px-3 py-1.5 rounded cursor-pointer mb-2">
         Apply filters
       </button>
-      <a href="/scanning-volunteers?country={{ profile.country }}&city={{ profile.city }}&languages={{ profile.languages | join(',') }}&libraries={{ profile.libraries | join(',') }}&scanner_type={{ profile.scanner_type }}"
+      <a href="/scanning-volunteers?country={{ profile.country }}&city={{ profile.city }}&languages={{ profile.languages | join(',') }}&libraries={{ profile.libraries | join(',') }}&scanner_type={{ profile.scanner_type }}&travel_distance_km={{ profile.travel_distance_km if profile.travel_distance_km is not none else '' }}"
          class="block w-full text-center text-gray-400 border border-dashed border-gray-300 hover:bg-gray-50 text-sm px-3 py-1.5 rounded">
         Clear filters
       </a>

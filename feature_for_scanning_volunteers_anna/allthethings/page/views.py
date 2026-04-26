@@ -1,17 +1,8 @@
-# ─── SCANNING VOLUNTEERS — additions to allthethings/page/views.py ───────────
-#
-# HOW TO MERGE:
-#   1. Add the two imports below to the existing imports block at the top of
-#      the real views.py (alongside the other `from allthethings.page.*` lines).
-#   2. Paste scanning_volunteers_page() and _scanning_apply_filters() anywhere
-#      after the `page = Blueprint(...)` line.
-#   Do NOT paste the Blueprint line — it already exists in the real file.
-#
-# ─────────────────────────────────────────────────────────────────────────────
-
-# Add these two lines to the imports block in the real views.py:
+from flask import Blueprint, render_template, request
 from allthethings.page.scanning_data import MOCK_BOOKS
 from allthethings.page.scanning_helpers import build_profile, match_books, unique_languages
+
+page = Blueprint("page", __name__)
 
 
 @page.get("/scanning-volunteers")

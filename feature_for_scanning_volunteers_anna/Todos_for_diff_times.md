@@ -31,18 +31,11 @@ Ordered roughly by impact. Items marked **[separate project]** are substantial e
 
 ---
 
-## 2. Lower the `min_city_population` threshold
+## ~~2. Lower the `min_city_population` threshold~~ ✅ DONE
 
-**Problem:** `geonamescache` defaults to population ≥ 15,000. Many European towns with important archives (monastery libraries, regional archives, small university towns) fall below this threshold and return `None` from `_get_city_coords`.
+**Was:** `geonamescache` defaulted to population ≥ 15,000 (32k cities). Small archive towns like Pazin, Croatia were missing.
 
-**Fix:** when constructing the cache instance, pass a lower threshold:
-```python
-geonamescache.GeonamesCache(min_city_population=500)
-# options: 500, 1000, 5000, 15000 (default)
-```
-`min_city_population=500` includes villages. Trade-off: slightly more memory, slightly slower first load. Recommended value: `1000` — covers essentially all towns with a library.
-
-**Where to change:** `_gc()` in `scanning_helpers.py` — one line.
+**Fixed:** `_gc()` in `scanning_helpers.py` now passes `min_city_population=1000` → 161k cities. Valid values are 500, 1000, 5000, 15000 only — 10000 does not exist and crashes with a missing file error.
 
 ---
 

@@ -29,7 +29,10 @@ WEIGHTS = {
 
 @functools.cache
 def _gc() -> geonamescache.GeonamesCache:
-    return geonamescache.GeonamesCache()
+    # min_city_population=1000 covers all towns with a library (161k cities).
+    # Default is 15000 (32k cities) — too coarse for small archive towns.
+    # Valid values: 500, 1000, 5000, 15000. Lower values increase memory usage and startup time.
+    return geonamescache.GeonamesCache(min_city_population=1000)
 
 
 # Common names that don't substring-match the GeoNames canonical name.

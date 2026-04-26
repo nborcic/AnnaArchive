@@ -49,13 +49,11 @@ Weights are centralised in the `WEIGHTS` dict at the top of the file. Core funct
 
 ## City Name → Lat/Lon (Geocoding)
 
-**Library:** [`geonamescache`](https://pypi.org/project/geonamescache/) — fully offline, bundled JSON, ~25 000 cities globally, no API key needed.
+**Library:** [`geonamescache`](https://pypi.org/project/geonamescache/) v3.0.1 — fully offline, bundled JSON, no API key needed.
 
-> **Updating the data:** `geonamescache` bundles its city data at install time. To get newer GeoNames data (cities renamed, new cities added, population thresholds changed), just upgrade the package: `pip install --upgrade geonamescache`. The raw upstream source is updated daily at `https://download.geonames.org/export/dump/` — the package author periodically syncs from it. If you need fresher data than the latest PyPI release provides, see TODOS.md item #1 for building directly from the raw dump.
+**Current threshold:** `min_city_population=1000` → **161,662 cities**. Changed from the default 15,000 (32k cities) to cover small archive towns. Valid values only: `500`, `1000`, `5000`, `15000` — passing anything else (e.g. 10000) crashes with a missing file error.
 
-**Why not a hardcoded dict?** The old `CITY_COORDS` dict only covered the 19 cities in mock data. Any city a volunteer types that wasn't in the list silently returned `None`. `geonamescache` covers the whole world with zero maintenance.
-
-**Why not `geopy` / Nominatim?** Those make live HTTP calls to OpenStreetMap — adds latency and a rate limit (1 req/sec). Not needed here.
+> **Updating the data:** `geonamescache` bundles its city data at install time. To refresh: `pip install --upgrade geonamescache`. Raw upstream updates daily at `https://download.geonames.org/export/dump/` — the package author syncs periodically. For finer control (LIBR feature codes, non-Latin scripts) see `Todos_for_diff_times.md` items #1 and #4.
 
 ### How city lookup works — step by step
 

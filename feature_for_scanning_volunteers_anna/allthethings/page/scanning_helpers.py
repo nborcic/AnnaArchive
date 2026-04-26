@@ -1,6 +1,7 @@
 import math
 import functools
 import geonamescache
+import langcodes
 
 # ─── SCORING WEIGHTS ──────────────────────────────────────────────────────────
 # Centralised so tuning the ranking never requires hunting through logic code.
@@ -118,6 +119,28 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 HIGH_PRIORITY_THRESHOLD = 80
 
 
+@functools.cache
+def _norm_lang(s: str) -> str:
+    """
+    Normalise any language string to a BCP47 language subtag.
+    'Croatian', 'hr', 'hrv', 'hrvatski' all return 'hr'.
+    Falls back to lowercased input when langcodes can't identify it.
+
+    Strategy: find() handles full names and 2-letter tags; Language.get()
+    handles ISO 639-2 alpha-3 codes ('hrv', 'deu', etc.) that find() misses.
+    """
+    try:
+        # standardize_tag handles codes: 'hr'→'hr', 'hrv'→'hr', 'pol'→'pl', 'deu'→'de'
+        return langcodes.standardize_tag(s).split("-")[0]
+    except Exception:
+        pass
+    try:
+        # find handles full names: 'Croatian'→'hr', 'German'→'de', 'polski'→'pl'
+        return langcodes.find(s).language
+    except LookupError:
+        return s.lower()
+
+
 def calculate_score(book: dict, profile: dict) -> tuple[int, list[str]]:
     """
     Return (score, reasons) for one book against one volunteer profile.
@@ -183,8 +206,8 @@ def calculate_score(book: dict, profile: dict) -> tuple[int, list[str]]:
     # ── Language match ────────────────────────────────────────────────────────
     # A volunteer who reads the language can verify scan quality and spot
     # OCR errors — worth rewarding.
-    book_lang = book["language"].lower()
-    volunteer_langs = [lang.lower() for lang in profile.get("languages", [])]
+    book_lang = _norm_lang(book["language"])
+    volunteer_langs = [_norm_lang(lang) for lang in profile.get("languages", [])]
     if book_lang in volunteer_langs:
         score += WEIGHTS["language_match"]
         reasons.append("Matches your language")

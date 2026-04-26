@@ -83,3 +83,18 @@ if ascii_city != city:
 
 - Replace `MOCK_BOOKS` source with a SQLAlchemy / raw SQL query
 - No changes needed to `calculate_score` or `match_books`
+
+
+  ┌──────────────────────────────┬─────────────────────────┐
+  │                              │         Status          │
+  ├──────────────────────────────┼─────────────────────────┤
+  │ BCP47 language normalisation │ must fix before sending │
+  ├──────────────────────────────┼─────────────────────────┤
+  │ Real DB query / migration    │ must include            │
+  ├──────────────────────────────┼─────────────────────────┤
+  │ geonamescache version pin    │ quick fix               │
+  ├──────────────────────────────┼─────────────────────────┤
+  │ Standalone file cleanup      │ strip from diff         │
+  ├──────────────────────────────┼─────────────────────────┤
+  │ Tests for calculate_score    │ strongly recommended    │
+  └──────────────────────────────┴─────────────────────────┘

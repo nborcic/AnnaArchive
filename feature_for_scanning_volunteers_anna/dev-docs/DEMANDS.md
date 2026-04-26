@@ -58,10 +58,13 @@ Do **not** add `@cache.cached()` to the view. Query params are per-volunteer —
 ```
 feature_for_scanning_volunteers_anna/
 ├── app.py                              # Standalone Flask entry point
-├── requirements.txt                    # flask, geonamescache
-├── KNOWLEDGE.md                        # Living reference for agents + humans
-├── DEMANDS.md                          # This file
-├── TODOS.md                            # Roadmap and improvement items
+├── requirements.txt                    # flask, geonamescache, langcodes
+├── dev-docs/
+│   ├── KNOWLEDGE.md                    # Living reference for agents + humans
+│   ├── DEMANDS.md                      # This file
+│   └── Todos_tracker.md         # Roadmap and improvement items
+├── tests/
+│   └── test_scoring.py                 # pytest suite for scoring logic
 └── allthethings/
     └── page/
         ├── scanning_data.py            # Mock book data (DB stand-in)
@@ -158,7 +161,7 @@ Centralised in the `WEIGHTS` dict at the top of `scanning_helpers.py`. Tuning th
 
 - **City match** sets a `city_matched` flag. If the city matched, the `within_travel_range` block is **skipped** entirely — do not double-reward proximity.
 - **Travel range** only fires if `travel_distance_km` is set AND `city_matched` is False AND both cities are resolvable to coordinates.
-- **Language match** is plain lowercased string comparison. Future improvement: BCP47 normalisation (see TODOS.md).
+- **Language match** is plain lowercased string comparison. Future improvement: BCP47 normalisation (see dev-docs/Todos_tracker.md).
 - **Library match** is case-insensitive. "University Library Split" and "university library split" must match.
 - `match_books` returns `[]` when no profile field is filled in. The template shows a prompt instead of a meaningless all-zero ranking.
 

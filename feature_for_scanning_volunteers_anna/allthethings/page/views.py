@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request
 from allthethings.page.scanning_data import MOCK_BOOKS
-from allthethings.page.scanning_helpers import build_profile, match_books, unique_languages, HIGH_PRIORITY_THRESHOLD
+from allthethings.page.scanning_helpers import build_profile, match_books, unique_languages, language_display_names, HIGH_PRIORITY_THRESHOLD
 
 page = Blueprint("page", __name__)
 
@@ -23,6 +23,7 @@ def scanning_volunteers_page():
     profile = build_profile(request.args)
     all_matches = match_books(MOCK_BOOKS, profile)
     all_languages = unique_languages(MOCK_BOOKS)
+    lang_names = language_display_names(all_languages)
 
     active_filters = {
         "risk_level":         request.args.get("risk_level", ""),
@@ -40,6 +41,7 @@ def scanning_volunteers_page():
         profile=profile,
         matches=matches,
         all_languages=all_languages,
+        lang_names=lang_names,
         active_filters=active_filters,
         total_before_filter=len(all_matches),
     )

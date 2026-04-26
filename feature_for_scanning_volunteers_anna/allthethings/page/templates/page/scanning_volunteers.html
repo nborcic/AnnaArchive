@@ -119,7 +119,7 @@
           class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-[#4361ee]">
           <option value="">All languages</option>
           {% for lang in all_languages %}
-            <option value="{{ lang }}" {% if active_filters.language == lang %}selected{% endif %}>{{ lang }}</option>
+            <option value="{{ lang }}" {% if active_filters.language == lang %}selected{% endif %}>{{ lang_names[lang] }}</option>
           {% endfor %}
         </select>
       </div>
@@ -203,7 +203,7 @@
         <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm mb-3">
           <dt class="text-gray-500 font-semibold whitespace-nowrap">Library</dt>  <dd>{{ book.library }}</dd>
           <dt class="text-gray-500 font-semibold whitespace-nowrap">Location</dt> <dd>{{ book.city }}, {{ book.country }}</dd>
-          <dt class="text-gray-500 font-semibold whitespace-nowrap">Language</dt> <dd>{{ book.language }}</dd>
+          <dt class="text-gray-500 font-semibold whitespace-nowrap">Language</dt> <dd>{{ lang_names.get(book.language, book.language) }}</dd>
           <dt class="text-gray-500 font-semibold whitespace-nowrap">Requests</dt> <dd>{{ book.request_count }}</dd>
         </dl>
 

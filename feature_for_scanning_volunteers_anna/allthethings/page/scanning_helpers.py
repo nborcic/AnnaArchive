@@ -26,7 +26,7 @@ WEIGHTS = {
 #   pip install --upgrade geonamescache
 # The raw upstream dump updates daily at https://download.geonames.org/export/dump/
 # — the package author syncs from it periodically. For finer control (LIBR feature
-# codes, lower population threshold, etc.) see TODOS.md item #1.
+# codes, lower population threshold, etc.) see dev-docs/Todos_tracker.md item #5.
 
 @functools.cache
 def _gc() -> geonamescache.GeonamesCache:
@@ -292,5 +292,20 @@ def match_books(books: list[dict], profile: dict) -> list[dict]:
 
 
 def unique_languages(books: list[dict]) -> list[str]:
-    """Return sorted list of distinct languages across all books."""
+    """Return sorted list of distinct BCP47 language codes across all books."""
     return sorted({b["language"] for b in books})
+
+
+def language_display_names(codes: list[str]) -> dict[str, str]:
+    """Map BCP47 codes to English display names for the filter dropdown.
+    Returns e.g. {"hr": "Croatian (hr)", "de": "German (de)"}.
+    Falls back to the raw code if langcodes can't resolve it.
+    """
+    result = {}
+    for code in codes:
+        try:
+            name = langcodes.Language.get(code).display_name("en")
+            result[code] = f"{name} ({code})"
+        except Exception:
+            result[code] = code
+    return result

@@ -18,8 +18,11 @@ Feature branch for Anna's Archive — a volunteer scanning coordination tool. Vo
 | `allthethings/page/scanning_data.py` | Mock book data (~20 books across Europe) |
 | `allthethings/page/views.py` | Flask routes |
 | `allthethings/page/templates/page/scanning_volunteers.html` | Volunteer profile form + results |
-| `requirements.txt` | `flask>=3.0.0`, `geonamescache>=1.6.0` |
-| `KNOWLEDGE.md` | This file — agent + human reference |
+| `requirements.txt` | `flask>=3.0.0`, `geonamescache>=3.0.0`, `langcodes[data]>=3.5.0` |
+| `tests/test_scoring.py` | pytest suite — 37 tests for scoring and geocoding |
+| `dev-docs/KNOWLEDGE.md` | This file — agent + human reference |
+| `dev-docs/DEMANDS.md` | Full feature specification |
+| `dev-docs/Todos_tracker.md` | Roadmap and improvement items |
 
 ---
 
@@ -53,7 +56,7 @@ Weights are centralised in the `WEIGHTS` dict at the top of the file. Core funct
 
 **Current threshold:** `min_city_population=1000` → **161,662 cities**. Changed from the default 15,000 (32k cities) to cover small archive towns. Valid values only: `500`, `1000`, `5000`, `15000` — passing anything else (e.g. 10000) crashes with a missing file error.
 
-> **Updating the data:** `geonamescache` bundles its city data at install time. To refresh: `pip install --upgrade geonamescache`. Raw upstream updates daily at `https://download.geonames.org/export/dump/` — the package author syncs periodically. For finer control (LIBR feature codes, non-Latin scripts) see `Todos_for_diff_times.md` items #1 and #4.
+> **Updating the data:** `geonamescache` bundles its city data at install time. To refresh: `pip install --upgrade geonamescache`. Raw upstream updates daily at `https://download.geonames.org/export/dump/` — the package author syncs periodically. For finer control (LIBR feature codes, non-Latin scripts) see `dev-docs/Todos_tracker.md` items #5 and #7.
 
 ### How city lookup works — step by step
 
@@ -112,11 +115,16 @@ All 20 mock book cities resolve correctly. Sample:
 
 ## Language Handling
 
-Current: plain lowercased string match against the volunteer's comma-separated language list.
+**Implemented:** BCP47 normalisation via `langcodes[data]>=3.5.0`. Mock book data uses BCP47 codes (`"hr"`, `"de"`, `"pl"`, etc.) matching Anna's Archive's real DB format.
 
-**Anna's Archive real codebase uses:** BCP47 language codes via the `langcodes` Python library + a `country_lang_mapping` dict that infers language from country (e.g. Croatia → Croatian). No geographic distance logic exists in their code at all.
+`_norm_lang(s)` in `scanning_helpers.py` normalises any volunteer input to a BCP47 language subtag:
+- `standardize_tag` first — handles codes: `"hr"` → `"hr"`, `"hrv"` → `"hr"`, `"pol"` → `"pl"`
+- `find()` fallback — handles full names: `"Croatian"` → `"hr"`, `"German"` → `"de"`
+- Final fallback: `s.lower()` for unrecognised strings
 
-**Potential improvement:** adopt BCP47 normalisation so "Croatian" / "HR" / "hrv" all resolve to the same code, and add country → language inference.
+**Known gap:** the filter sidebar language dropdown currently shows raw codes (`"hr"`, `"de"`). Fix: add `language_display_names(codes) -> dict[str,str]` helper to `scanning_helpers.py`, pass result to template, render as `"Croatian (hr)"`. See Todos #2.
+
+**Anna's Archive real codebase uses:** BCP47 via `get_bcp47_lang_codes()` + `country_lang_mapping` dict that infers language from country. No geographic distance logic exists in their code at all.
 
 ---
 

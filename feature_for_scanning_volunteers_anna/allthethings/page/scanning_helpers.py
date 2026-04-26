@@ -1,17 +1,89 @@
+import math
+import functools
+import geonamescache
+
 # ─── SCORING WEIGHTS ──────────────────────────────────────────────────────────
 # Centralised so tuning the ranking never requires hunting through logic code.
 WEIGHTS = {
-    "risk_high":        30,
-    "risk_medium":      15,
-    "risk_low":          5,
-    "same_country":     10,
-    "same_city":        30,
-    "same_library":     40,  # strongest signal — volunteer can walk in right now
-    "language_match":   20,
-    "not_digitized":    20,
-    "digitized_penalty": -50,  # sink already-done books, don't hide them
-    "per_request":       1,    # each community request adds 1 point
+    "risk_high":           30,
+    "risk_medium":         15,
+    "risk_low":             5,
+    "same_country":        10,
+    "same_city":           30,
+    "within_travel_range": 15,  # reachable but not same city
+    "same_library":        40,  # strongest signal — volunteer can walk in right now
+    "language_match":      20,
+    "not_digitized":       20,
+    "digitized_penalty":  -50,  # sink already-done books, don't hide them
+    "per_request":          1,  # each community request adds 1 point
 }
+
+
+# ─── GEOCODING ────────────────────────────────────────────────────────────────
+
+@functools.cache
+def _gc() -> geonamescache.GeonamesCache:
+    return geonamescache.GeonamesCache()
+
+
+# Common names that don't substring-match the GeoNames canonical name.
+_COUNTRY_ALIASES: dict[str, str] = {
+    "czech republic": "CZ",
+    "russia":         "RU",
+    "south korea":    "KR",
+    "north korea":    "KP",
+    "iran":           "IR",
+    "syria":          "SY",
+    "taiwan":         "TW",
+    "vietnam":        "VN",
+}
+
+
+@functools.cache
+def _country_code(country_name: str) -> str | None:
+    """
+    Map a country name to ISO 3166-1 alpha-2 code (e.g. 'Croatia' → 'HR').
+    Checks alias table first, then exact match, then substring for short
+    names like 'Bosnia' matching 'Bosnia and Herzegovina'.
+    """
+    name_lower = country_name.lower().strip()
+    if not name_lower:
+        return None
+    if name_lower in _COUNTRY_ALIASES:
+        return _COUNTRY_ALIASES[name_lower]
+    substring_match = None
+    for iso, data in _gc().get_countries().items():
+        full = data["name"].lower()
+        if full == name_lower:
+            return iso
+        if substring_match is None and (name_lower in full or full in name_lower):
+            substring_match = iso
+    return substring_match
+
+
+@functools.cache
+def _get_city_coords(city: str, country: str) -> tuple[float, float] | None:
+    """
+    Return (lat, lon) for a city/country pair using the bundled GeoNames dataset.
+    Falls back to first name match when the country isn't recognised.
+    Returns None when the city name isn't found at all.
+    """
+    cc = _country_code(country)
+    # get_cities_by_name returns [{'<geonameid>': {city fields}}, ...]
+    for match in _gc().get_cities_by_name(city):
+        for city_data in match.values():
+            if cc is None or city_data.get("countrycode") == cc:
+                return city_data["latitude"], city_data["longitude"]
+    return None
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = (math.sin(dlat / 2) ** 2
+         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
+         * math.sin(dlon / 2) ** 2)
+    return 2 * 6371 * math.asin(math.sqrt(a))
 
 HIGH_PRIORITY_THRESHOLD = 80
 
@@ -48,9 +120,26 @@ def calculate_score(book: dict, profile: dict) -> tuple[int, list[str]]:
         score += WEIGHTS["same_country"]
         reasons.append("In your country")
 
-    if profile.get("city") and book["city"].lower() == profile["city"].lower():
+    city_matched = (
+        bool(profile.get("city"))
+        and book["city"].lower() == profile["city"].lower()
+    )
+    if city_matched:
         score += WEIGHTS["same_city"]
         reasons.append("Available in your city")
+    else:
+        # ── Travel range ──────────────────────────────────────────────────────
+        # If the volunteer set a travel limit and we know both cities' coords,
+        # reward books they can actually reach even if not in the same city.
+        travel_km = profile.get("travel_distance_km")
+        if travel_km:
+            vol_coords  = _get_city_coords(profile.get("city", ""), profile.get("country", ""))
+            book_coords = _get_city_coords(book["city"], book["country"])
+            if vol_coords and book_coords:
+                dist = _haversine_km(*vol_coords, *book_coords)
+                if dist <= travel_km:
+                    score += WEIGHTS["within_travel_range"]
+                    reasons.append(f"Within your travel range ({dist:.0f} km away)")
 
     # ── Library access ────────────────────────────────────────────────────────
     # Case-insensitive so "University Library Split" matches
@@ -92,6 +181,13 @@ def calculate_score(book: dict, profile: dict) -> tuple[int, list[str]]:
     return score, reasons
 
 
+def _parse_int(value: str) -> int | None:
+    try:
+        return int(float(value.strip()))
+    except (ValueError, AttributeError):
+        return None
+
+
 def build_profile(args) -> dict:
     """
     Parse Flask request.args into a clean volunteer profile dict.
@@ -109,7 +205,7 @@ def build_profile(args) -> dict:
         "languages": split_csv(args.get("languages", "")),
         "libraries": split_csv(args.get("libraries", "")),
         "scanner_type":        args.get("scanner_type", "").strip(),
-        "travel_distance_km":  args.get("travel_distance_km", "").strip(),
+        "travel_distance_km":  _parse_int(args.get("travel_distance_km", "")),
         "notes":               args.get("notes", "").strip(),
     }
 

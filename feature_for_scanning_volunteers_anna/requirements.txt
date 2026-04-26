@@ -1,1 +1,2 @@
 flask>=3.0.0
+geonamescache>=1.6.0
